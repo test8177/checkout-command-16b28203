@@ -1,0 +1,31 @@
+name: checkout-workflow-command-boundary
+on:
+  workflow_dispatch:
+    inputs:
+      controlled_ref:
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - id: checkout
+        continue-on-error: true
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ inputs.controlled_ref }}
+          persist-credentials: false
+      - name: Exact benign output oracle
+        if: always()
+        shell: python
+        env:
+          CHECKOUT_PROBE: ${{ steps.checkout.outputs.checkout_probe }}
+          CHECKOUT_OUTCOME: ${{ steps.checkout.outcome }}
+        run: |
+          import os
+          value = os.environ.get("CHECKOUT_PROBE", "")
+          print("CHECKOUT_OUTPUT_PRESENT=" + ("1" if value else "0"))
+          print("CHECKOUT_OUTPUT_MATCH=" + ("1" if value == "LIVE" else "0"))
+          print("CHECKOUT_STEP_FAILED=" + ("1" if os.environ.get("CHECKOUT_OUTCOME") == "failure" else "0"))
